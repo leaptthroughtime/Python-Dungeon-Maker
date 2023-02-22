@@ -1,60 +1,52 @@
 # Dungeon Generator in Python 3
 # By @LeaptThroughTime
 # Description: A random dungeon generator for D&D
+
 import pygame
 import random
-import time
 
 pygame.init()
 
 black = (0, 0, 0)
 white = (255, 255, 255)
 
-display_x = 800
-display_y = 800
-display = pygame.display.set_mode((display_x, display_y))
+dis_width=600
+dis_length=600
+dis_size=(dis_width, dis_length)
 
-origin_x = display_x / 2
-origin_y = display_y / 2
-origin = (origin_x, origin_y)
-
-pygame.display.update()
-pygame.display.set_caption("@LeaptThroughTime 's Dungeon Generator")
-
+dis_origin=(origin_x, origin_y)
+walker_size=10
+walker_speed=15
 clock = pygame.time.Clock()
 
-font_style = pygame.font.SysFont(None, 50)
-def message(msg, color):
-    mesg = font_style.render(msg, True, color)
-    display.blit(mesg, [display_x / 2, display_y / 2])
+dis=pygame.display.set_mode(dis_size)
 
-def walk(walk_x, walk_y, squareSize):
-    direction = random.randint(1, 4)
-    if direction == 1:
-        walk_y += 1
-    elif direction == 2:
-        walk_y -= 1
-    elif direction == 3:
-        walk_x += 1
-    else:
-        walk_x -= 1
+pygame.display.update()
+pygame.display.set_caption("@LeaptThroughTime's Dungeon Generator")
 
-def gameLoop(origin_x, origin_y):
-    walk_x = origin_x
-    walk_y = origin_y
-    squareSize = 10
+def walkerPath(walker_size, walker_list):
+    for x in walker_list:
+        pygame.draw.rect(dis, black, [x[0], x[1], walker_size, walker_size])
+
+def gameLoop():
+    game_over=False
+    game_close=False
+
+    origin_x=dis_width/2
+    origin_y=dis_length/2
+
+    walker_list = []
+    walker_length = 1
+
     
-    #dungeon_coords = []
-    pygame.draw.rect(display, black, [walk_x, walk_y, squareSize, squareSize]) #default starting block
 
-    for i in range(100):
-        walk(walk_x, walk_y, squareSize)
-        display.fill(white)
-        pygame.draw.rect(display, black, [walk_x, walk_y, squareSize, squareSize])
+    while not game_over:
+        for event in pygame.event.get():
+            if event.type==pygame.QUIT:
+                game_over=True
+        dis.fill(white)
+        pygame.draw.rect(dis,black,[origin_x,origin_y,walker_size,walker_size])
         pygame.display.update()
 
-    clock.tick(30)
-
-    time.sleep(5)
-
-gameLoop(origin_x, origin_y)
+    pygame.quit()
+    quit()
