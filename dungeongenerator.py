@@ -41,24 +41,6 @@ class DungeonGenerator:
         pygame.display.set_caption("@LeaptThroughTime's Dungeon Generator")
         self.path = self.generate_Path()
 
-    def walk(self) -> List[int]:
-        for previous, item, nxt in self.previous_and_next():
-            if previous is not None:
-                pygame.draw.rect(self.display, COLOR['white'],
-                                 [previous[0], previous[1],
-                                 self.walker_size, self.walker_size])
-            pygame.draw.rect(self.display, COLOR['red'],
-                             [item[0], item[1],
-                              self.walker_size, self.walker_size])
-            self.step_text = self.font.render(f'Steps: {self.step_count}',
-                                              True, COLOR["white"])
-            self.erase_count()
-            self.display.blit(self.step_text, (10, 10))
-            self.step_count += 1
-            pygame.display.update()
-            self.clock.tick(FPS)
-        self.wait()
-
     def generate_Path(self):
         self.walker_list.append(self.walker_location)
         for i in range(STEPS):
@@ -125,6 +107,24 @@ class DungeonGenerator:
                         sys.exit()
                     if event.key == K_SPACE:
                         self.reset()
+
+    def walk(self) -> List[int]:
+        for previous, item, nxt in self.previous_and_next():
+            if previous is not None:
+                pygame.draw.rect(self.display, COLOR['white'],
+                                 [previous[0], previous[1],
+                                 self.walker_size, self.walker_size])
+            pygame.draw.rect(self.display, COLOR['red'],
+                             [item[0], item[1],
+                              self.walker_size, self.walker_size])
+            self.step_text = self.font.render(f'Steps: {self.step_count}',
+                                              True, COLOR["white"])
+            self.erase_count()
+            self.display.blit(self.step_text, (10, 10))
+            self.step_count += 1
+            pygame.display.update()
+            self.clock.tick(FPS)
+        self.wait()
 
 
 if __name__ == "__main__":
