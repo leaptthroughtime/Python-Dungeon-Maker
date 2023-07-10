@@ -2,17 +2,9 @@
 # By @LeaptThroughTime
 # Description: A random dungeon generator for D&D
 
-import sys
 import pygame
+from Walker import Walker
 from pygame.locals import *
-import random
-from typing import List
-from itertools import tee, islice, chain
-
-STEPS = 1000
-DISPLAY_WIDTH = 600
-DISPLAY_LENGTH = 600
-FPS = 24
 
 COLOR = {
     'black': (0, 0, 0),
@@ -22,111 +14,75 @@ COLOR = {
 
 
 class DungeonGenerator:
-    def __init__(self):
+    def __init__(self, screen_width, screen_height, walker_steps):
         pygame.init()
-        pygame.font.init()
-        self.clock = pygame.time.Clock()
-        self.display_size = (DISPLAY_WIDTH, DISPLAY_LENGTH)
-        self.display = pygame.display.set_mode(self.display_size)
-        self.display_origin = (DISPLAY_WIDTH / 2, DISPLAY_LENGTH / 2)
-        self.walker_location = self.display_origin
-        self.walker_size = 10
-        self.walker_speed = 15
-        self.walker_list = []
-        self.step_count = 0
-        self.font = pygame.font.Font(None, 36)
-        self.step_text = self.font.render(f'Steps: {self.step_count}',
-                                          True, COLOR["white"])
-        pygame.display.update()
+
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.walker_steps = walker_steps
+
+        self.window = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("@LeaptThroughTime's Dungeon Generator")
-        self.path = self.generate_Path()
 
-    def generate_Path(self):
-        self.walker_list.append(self.walker_location)
-        for i in range(STEPS):
-            self.walker_location = self.get_direction()
-            self.walker_list.append(self.walker_location)
+        self.clock = pygame.time.Clock()
+        self.running = False
+        self.paused = False
+        self.walker = None
+        self.step_counter = 0
+        self.trail = []
 
-    def get_direction(self) -> int:
-        off_screen = False
-        while not off_screen:
-            direction = random.randint(1, 4)
-            match direction:
-                case 1:
-                    new_location = (self.walker_location[0],
-                                    self.walker_location[1] + self.walker_size)
-                    if self.is_on_screen(new_location):
-                        return new_location
-                case 2:
-                    new_location = (self.walker_location[0] + self.walker_size,
-                                    self.walker_location[1])
-                    if self.is_on_screen(new_location):
-                        return new_location
-                case 3:
-                    new_location = (self.walker_location[0],
-                                    self.walker_location[1] - self.walker_size)
-                    if self.is_on_screen(new_location):
-                        return new_location
-                case 4:
-                    new_location = (self.walker_location[0] - self.walker_size,
-                                    self.walker_location[1])
-                    if self.is_on_screen(new_location):
-                        return new_location
+    def start(self):
+        self.running = True
+        self.paused = False
+        self.step_counter = 0
+        self.walker = Walker(self.screen_width // 2, self.screen_height // 2, 10, self.screen_width, self.screen_height)
+        self.trail = []
 
-    def is_on_screen(self, location: tuple) -> bool:
-        if location[0] not in range(0, DISPLAY_WIDTH) or location[1] not in range(0, DISPLAY_LENGTH):
-            return False
-        return True
+        while self.running:
+            self.handle_events()
 
-    def previous_and_next(self) -> tuple:
-        prevs, items, nexts = tee(self.walker_list, 3)
-        prevs = chain([None], prevs)
-        nexts = chain(islice(nexts, 1, None), [None])
-        return zip(prevs, items, nexts)
+            if not self.paused and self.step_counter < self.walker_steps:
+                self.walker.move()
+                self.step_counter += 1
+                self.trail.append((self.walker.x, self.walker.y))
 
-    def erase_count(self) -> None:
-        self.display.fill(COLOR['black'], (0, 0, 200, 100))
-
-    def reset(self):
-        self.display.fill(COLOR['black'])
-        self.walker_location = self.display_origin
-        self.walker_list = []
-        self.step_count = 0
-        self.generate_Path()
-        self.walk()
-
-    def wait(self):
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == pygame.KEYDOWN:
-                    if event.key == K_q or event.key == K_ESCAPE:
-                        pygame.quit()
-                        sys.exit()
-                    if event.key == K_SPACE:
-                        self.reset()
-
-    def walk(self) -> List[int]:
-        for previous, item, nxt in self.previous_and_next():
-            if previous is not None:
-                pygame.draw.rect(self.display, COLOR['white'],
-                                 [previous[0], previous[1],
-                                 self.walker_size, self.walker_size])
-            pygame.draw.rect(self.display, COLOR['red'],
-                             [item[0], item[1],
-                              self.walker_size, self.walker_size])
-            self.step_text = self.font.render(f'Steps: {self.step_count}',
-                                              True, COLOR["white"])
-            self.erase_count()
-            self.display.blit(self.step_text, (10, 10))
-            self.step_count += 1
+            self.draw()
             pygame.display.update()
-            self.clock.tick(FPS)
-        self.wait()
+            self.clock.tick(60)
+
+        pygame.quit()
+
+    def handle_events(self):
+        for event in pygame.event.get():
+            if event.type == QUIT or (event.type == KEYDOWN and (event.key == K_q or event.key == K_ESCAPE)):
+                self.running = False
+            elif event.type == KEYDOWN:
+                if event.key == K_SPACE:
+                    self.paused = not self.paused
+                elif event.key == K_RETURN and (self.paused or self.step_counter >= self.walker_steps):
+                    self.start()
+                elif event.key == K_p:
+                    self.export_screenshot()
+
+    def draw(self):
+        self.window.fill((0, 0, 0))  # Clear the screen
+
+        if self.walker:
+            self.walker.draw(self.window)
+
+        for trail_pos in self.trail:
+            pygame.draw.rect(self.window, (255, 255, 255), (trail_pos[0], trail_pos[1], self.walker.size, self.walker.size))
+
+        # Draw step counter in the top left corner
+        font = pygame.font.Font(None, 24)
+        text = font.render("Steps: {}".format(self.step_counter), True, COLOR["white"])
+        self.window.blit(text, (10, 10))
+
+    def export_screenshot(self):
+        pygame.image.save(self.window, "screenshot.png")
+        print("Screenshot saved as screenshot.png")
 
 
 if __name__ == "__main__":
-    dg = DungeonGenerator()
-    dg.walk()
+    dungeon_generator = DungeonGenerator(800, 600, 1000)
+    dungeon_generator.start()
